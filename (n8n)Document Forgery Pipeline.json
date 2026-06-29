@@ -1,0 +1,151 @@
+{
+  "name": "Document Forgery Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "analyze",
+        "responseMode": "responseNode",
+        "options": {
+          "binaryPropertyName": "file"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -16,
+        -16
+      ],
+      "id": "1fab7b39-bec9-4441-ae57-7985cff6421b",
+      "name": "Webhook",
+      "webhookId": "2d27e8d1-89f6-48b1-98d3-79d0fd8d623b"
+    },
+    {
+      "parameters": {
+        "jsCode": "const binaryData = $input.first().binary?.file;\n\nif (!$input.first().json.body.image_base64) {\n  throw new Error(\"No file received. Make sure you sent a file in the 'file' field.\");\n}\n\n// Get the base64 data (n8n stores it as base64 internally)\nconst base64String = $input.first().json.body.image_base64;\nconst fileExtension = $input.first().json.body.file_extension;\n\nreturn [{\n  json: {\n    image_base64: base64String,\n    file_extension: fileExtension\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        -16
+      ],
+      "id": "c02f5db9-71c6-454e-baab-931079a09b92",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:5000/analyze",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "image_base64",
+              "value": "={{ $json.image_base64 }}"
+            },
+            {
+              "name": "file_extension",
+              "value": "={{ $json.file_extension }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        432,
+        -16
+      ],
+      "id": "0b54499d-0a25-443b-bd4c-250dc7150669",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        656,
+        -16
+      ],
+      "id": "a898136e-e70b-47fc-8f55-a240922a0345",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "content": "### Run this code in the same dr of terminal where python code is , after executing workflow here:\n\n$filePath = \"test_doc.jpg\"\n>> $fileBytes = [System.IO.File]::ReadAllBytes($filePath)\n>> $fileBase64 = [Convert]::ToBase64String($fileBytes)\n>> \n>> $body = @{\n>>     image_base64 = $fileBase64\n>>     file_extension = \".jpg\"\n>> } | ConvertTo-Json\n>> \n>> Invoke-RestMethod -Uri \"http://localhost:5678/webhook-test/analyze\" `\n>>   -Method POST `\n>>   -ContentType \"application/json\" `\n>>   -Body $body\n ",
+        "height": 288,
+        "width": 816
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -48,
+        -336
+      ],
+      "typeVersion": 1,
+      "id": "61b21d4d-d5c0-4143-aded-dcf3ddd87664",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "8b84d06f-06c8-42b7-8a82-b6bb45e0d933",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "43faf5fbe9863b9ed842579dc7d1381bdfec28eeed240df18a7d1a91212b050e"
+  },
+  "id": "IYMHwVjarjbjkaUw",
+  "tags": []
+}
